@@ -1,0 +1,25 @@
+#!/bin/sh
+
+if [[ -z $1 ]]
+then
+    path="./";
+else
+    path=$1;
+fi
+directory=$path
+from=$2
+to=$3
+
+echo "`basename "$0"` @lwksProxyEditing_VERSION_MAJOR@.@lwksProxyEditing_VERSION_MINOR@.@lwksProxyEditing_VERSION_BUILD@";
+echo "change directory $directory from $from to $to";
+
+cd "$directory"
+IFS=$'\n';
+for link in $( find ./ -type l ); do
+    linkedfile=`ls -l "$link"`;
+    if [[ $linkedfile == *$from* ]]
+    then
+      filename=`basename "$link"`;
+      ln -sf "$to/$filename" "$link";
+    fi
+done

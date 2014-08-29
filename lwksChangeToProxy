@@ -1,0 +1,4 @@
+#!/bin/sh
+
+shellDir=`dirname "$0"`;
+source $shellDir/../include/lwksChangeTo "$1" High Proxy;

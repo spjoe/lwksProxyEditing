@@ -1,0 +1,57 @@
+#!/bin/sh
+
+usage(){
+    echo "`basename "$0"` @lwksProxyEditing_VERSION_MAJOR@.@lwksProxyEditing_VERSION_MINOR@.@lwksProxyEditing_VERSION_BUILD@";
+	echo "Usage: `basename "$0"` filenames|directories";
+	exit 1;
+}
+
+convert(){
+    echo "Start converting video: $1";
+	cd "`dirname "$1"`";
+	filename=`basename "$1"`;
+	
+    mkdir -p Proxy;
+    mkdir -p High;
+    
+    rate=`ffmpeg -i "$filename" 2>&1 | sed -n "s/.*, \(.*\) fp.*/\1/p"`;
+    
+    ffmpeg -i "$filename" -r $rate -vcodec mpeg2video -pix_fmt yuv422p -intra -qscale 1 -qmin 1 -acodec mp2 -ar 48000 -ab 384k -threads 8 -n "High/$filename.mp4";
+
+    ffmpeg -i "$filename" -vf scale=iw/2:-1 -r $rate -vcodec mpeg2video -pix_fmt yuv422p -intra -qscale 4 -qmin 1 -acodec mp2 -ar 48000 -ab 384k -threads 8 -n "Proxy/$filename.mp4";
+
+    ln -sf "Proxy/$filename.mp4" "$filename.mp4";
+    cd -;
+}
+
+convertAllInDirectory(){
+    echo "Convert all files with mime type video/* in the directory: $1";
+    IFS=$'\n';
+    for videoFile in $( find "$1" -maxdepth 1 -type f -exec file -N -i -- {} + | sed -n 's!: video/[^:]*$!!p' ); do
+        convert "$videoFile";
+    done
+}
+
+convertFileOrDirectory(){
+    if [ -f "$1" ]
+    then
+        convert "$1";      
+    elif [ -d "$1" ]
+    then
+        convertAllInDirectory "$1";
+    else
+        echo "Have not found file/directory: $1";
+    fi
+}
+
+if [ -z "$1" -o "$1" == "--help" -o "$1" == "-h" ]; then
+    usage
+fi
+
+for parameter in "$@"
+do
+    convertFileOrDirectory "$parameter";
+done
+
+exit 0;
+
